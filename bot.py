@@ -11,6 +11,8 @@ import sys
 
 import aiohttp
 from dotenv import load_dotenv
+from pipecat.audio.vad.silero import SileroVADAnalyzer
+from pipecat.frames.frames import LLMMessagesFrame
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
@@ -74,7 +76,7 @@ async def run_bot():
             audio_in_enabled=True,
             audio_out_enabled=True,
             vad_enabled=True,
-            vad_analyzer=None,  # use default Silero
+            vad_analyzer=SileroVADAnalyzer(),
             vad_audio_passthrough=True,
         ),
     )
@@ -120,7 +122,8 @@ async def run_bot():
     @transport.event_handler("on_first_participant_joined")
     async def on_first_participant_joined(transport, participant):
         logger.info(f"Participant joined: {participant['id']}")
-        await task.queue_frames([])
+        # Trigger the bot's initial greeting
+        await task.queue_frames([LLMMessagesFrame(messages)])
 
     @transport.event_handler("on_participant_left")
     async def on_participant_left(transport, participant, reason):
