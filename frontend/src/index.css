@@ -18,3 +18,17 @@ body {
   background: #0a0a0f;
   color: #e0e0e8;
 }
+
+/* Padding inside panels */
+#root > div {
+  padding: 10px;
+  gap: 8px;
+}
+
+#root > div > div:first-child {
+  padding: 10px 16px;
+}
+
+[data-slot="resizable-panel"] > div {
+  padding: 10px;
+}
