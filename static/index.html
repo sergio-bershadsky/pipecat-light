@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pipecat Light</title>
+  <script crossorigin src="https://unpkg.com/@daily-co/daily-js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #14141f;
+      --border: #2a2a3a;
+      --text: #e0e0e8;
+      --text-dim: #6a6a80;
+      --accent: #6c5ce7;
+      --accent-glow: rgba(108, 92, 231, 0.3);
+      --green: #00b894;
+      --red: #e74c3c;
+      --yellow: #f39c12;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 640px;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      padding: 16px 0;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    header p {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    /* ── Status ── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 13px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      flex-shrink: 0;
+    }
+
+    .status-dot.connected { background: var(--green); box-shadow: 0 0 8px rgba(0, 184, 148, 0.5); }
+    .status-dot.connecting { background: var(--yellow); animation: pulse 1s infinite; }
+    .status-dot.error { background: var(--red); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .status-text { flex: 1; color: var(--text-dim); }
+
+    /* ── Controls ── */
+    .controls {
+      display: flex;
+      gap: 12px;
+    }
+
+    button {
+      flex: 1;
+      padding: 14px 20px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    button:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .btn-connect {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-connect:hover:not(:disabled) {
+      background: #7c6cf7;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .btn-disconnect {
+      background: transparent;
+      color: var(--red);
+      border: 1px solid var(--red);
+    }
+
+    .btn-disconnect:hover:not(:disabled) {
+      background: rgba(231, 76, 60, 0.1);
+    }
+
+    .btn-mute {
+      flex: 0;
+      width: 48px;
+      padding: 14px 0;
+      background: var(--surface);
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      font-size: 18px;
+    }
+
+    .btn-mute:hover:not(:disabled) {
+      background: var(--border);
+    }
+
+    .btn-mute.muted {
+      color: var(--red);
+      border-color: var(--red);
+    }
+
+    /* ── Visualizer ── */
+    .visualizer-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 0;
+    }
+
+    .visualizer {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 48px;
+    }
+
+    .visualizer .bar {
+      width: 4px;
+      background: var(--accent);
+      border-radius: 2px;
+      height: 8px;
+      transition: height 0.08s ease;
+    }
+
+    .visualizer.active .bar {
+      animation: barAnim 0.6s ease-in-out infinite alternate;
+    }
+
+    .visualizer .bar:nth-child(1) { animation-delay: 0s; }
+    .visualizer .bar:nth-child(2) { animation-delay: 0.1s; }
+    .visualizer .bar:nth-child(3) { animation-delay: 0.2s; }
+    .visualizer .bar:nth-child(4) { animation-delay: 0.3s; }
+    .visualizer .bar:nth-child(5) { animation-delay: 0.15s; }
+    .visualizer .bar:nth-child(6) { animation-delay: 0.25s; }
+    .visualizer .bar:nth-child(7) { animation-delay: 0.05s; }
+
+    @keyframes barAnim {
+      0% { height: 8px; }
+      100% { height: 44px; }
+    }
+
+    /* ── Transcript ── */
+    .transcript {
+      flex: 1;
+      min-height: 300px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .transcript-empty {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+
+    .msg {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-width: 85%;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg.bot { align-self: flex-start; }
+    .msg.user { align-self: flex-end; }
+
+    .msg-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+    }
+
+    .msg.bot .msg-label { color: var(--accent); }
+    .msg.user .msg-label { color: var(--green); text-align: right; }
+
+    .msg-bubble {
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .msg.bot .msg-bubble {
+      background: #1a1a2e;
+      border: 1px solid var(--border);
+    }
+
+    .msg.user .msg-bubble {
+      background: rgba(0, 184, 148, 0.1);
+      border: 1px solid rgba(0, 184, 148, 0.2);
+    }
+
+    .msg-bubble.interim {
+      opacity: 0.5;
+      font-style: italic;
+    }
+
+    /* ── Log ── */
+    .log-toggle {
+      font-size: 12px;
+      color: var(--text-dim);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 0;
+      text-align: left;
+      flex: unset;
+      font-weight: 400;
+    }
+
+    .log-toggle:hover { color: var(--text); }
+
+    .log {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--text-dim);
+    }
+
+    .log.open { display: block; }
+    .log .entry { white-space: pre-wrap; word-break: break-all; }
+    .log .entry.error { color: var(--red); }
+    .log .entry.warn { color: var(--yellow); }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>Pipecat Light</h1>
+    <p>Russian greetings lesson with Anya</p>
+  </header>
+
+  <div class="status-bar">
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-text" id="statusText">Ready to connect</span>
+  </div>
+
+  <div class="controls">
+    <button class="btn-connect" id="btnConnect" onclick="startSession()">Start Lesson</button>
+    <button class="btn-mute" id="btnMute" onclick="toggleMute()" disabled title="Mute">&#x1F399;</button>
+    <button class="btn-disconnect" id="btnDisconnect" onclick="stopSession()" disabled>End</button>
+  </div>
+
+  <div class="visualizer-wrap">
+    <div class="visualizer" id="visualizer">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div>
+    </div>
+  </div>
+
+  <div class="transcript" id="transcript">
+    <div class="transcript-empty" id="transcriptEmpty">
+      Conversation will appear here
+    </div>
+  </div>
+
+  <button class="log-toggle" onclick="toggleLog()">Show debug log</button>
+  <div class="log" id="log"></div>
+</div>
+
+<script>
+  let callFrame = null;
+  let isMuted = false;
+  let currentBotMsg = null;
+  let currentUserMsg = null;
+
+  const $ = (id) => document.getElementById(id);
+
+  function log(msg, level = 'info') {
+    const el = $('log');
+    const entry = document.createElement('div');
+    entry.className = 'entry ' + level;
+    const ts = new Date().toLocaleTimeString('en-US', { hour12: false });
+    entry.textContent = ts + '  ' + msg;
+    el.appendChild(entry);
+    el.scrollTop = el.scrollHeight;
+    if (level === 'error') console.error(msg);
+    else console.log(msg);
+  }
+
+  function setStatus(state, text) {
+    $('statusDot').className = 'status-dot ' + state;
+    $('statusText').textContent = text;
+  }
+
+  function createMsgElement(role, text, interim) {
+    const msg = document.createElement('div');
+    msg.className = 'msg ' + role;
+
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = role === 'bot' ? 'Anya' : 'You';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble' + (interim ? ' interim' : '');
+    bubble.textContent = text;
+
+    msg.appendChild(label);
+    msg.appendChild(bubble);
+    return msg;
+  }
+
+  function addMessage(role, text, interim) {
+    $('transcriptEmpty').style.display = 'none';
+    const container = $('transcript');
+
+    if (role === 'bot') {
+      if (!currentBotMsg) {
+        currentBotMsg = createMsgElement('bot', '', false);
+        container.appendChild(currentBotMsg);
+      }
+      const bubble = currentBotMsg.querySelector('.msg-bubble');
+      bubble.textContent += text;
+      container.scrollTop = container.scrollHeight;
+      return;
+    }
+
+    if (role === 'user') {
+      if (interim) {
+        if (!currentUserMsg) {
+          currentUserMsg = createMsgElement('user', text, true);
+          container.appendChild(currentUserMsg);
+        } else {
+          currentUserMsg.querySelector('.msg-bubble').textContent = text;
+        }
+      } else {
+        if (currentUserMsg) {
+          const bubble = currentUserMsg.querySelector('.msg-bubble');
+          bubble.textContent = text;
+          bubble.classList.remove('interim');
+        } else {
+          container.appendChild(createMsgElement('user', text, false));
+        }
+        currentUserMsg = null;
+        currentBotMsg = null;
+      }
+      container.scrollTop = container.scrollHeight;
+    }
+  }
+
+  function setVisualizerActive(active) {
+    $('visualizer').classList.toggle('active', active);
+  }
+
+  async function startSession() {
+    $('btnConnect').disabled = true;
+    setStatus('connecting', 'Connecting...');
+    log('Requesting session from /api/connect');
+
+    try {
+      const resp = await fetch('/api/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+        throw new Error(err.detail || 'HTTP ' + resp.status);
+      }
+
+      const { url, token } = await resp.json();
+      log('Room: ' + url);
+
+      callFrame = window.DailyIframe.createCallObject({
+        audioSource: true,
+        videoSource: false,
+      });
+
+      callFrame.on('joined-meeting', () => {
+        log('Joined Daily room');
+        setStatus('connected', 'Connected — waiting for Anya...');
+        $('btnDisconnect').disabled = false;
+        $('btnMute').disabled = false;
+      });
+
+      callFrame.on('participant-joined', (ev) => {
+        if (!ev.participant.local) {
+          log('Bot joined: ' + ev.participant.user_name);
+          setStatus('connected', 'Anya is listening');
+          setVisualizerActive(true);
+        }
+      });
+
+      callFrame.on('participant-left', (ev) => {
+        if (!ev.participant.local) {
+          log('Bot left: ' + ev.participant.user_name);
+          setStatus('', 'Anya disconnected');
+          setVisualizerActive(false);
+        }
+      });
+
+      callFrame.on('app-message', (ev) => {
+        const data = ev.data;
+        log('app-message: ' + JSON.stringify(data).slice(0, 200));
+
+        if (data.type === 'bot-tts-text') {
+          addMessage('bot', (data.data && data.data.text) || '');
+        } else if (data.type === 'user-transcription') {
+          const d = data.data || {};
+          addMessage('user', d.text || '', !d.final);
+        }
+      });
+
+      callFrame.on('error', (ev) => {
+        log('Daily error: ' + JSON.stringify(ev), 'error');
+        setStatus('error', 'Connection error');
+      });
+
+      callFrame.on('left-meeting', () => {
+        log('Left meeting');
+        cleanup();
+      });
+
+      await callFrame.join({ url, token, startAudioOff: false, startVideoOff: true });
+
+    } catch (err) {
+      log('Error: ' + err.message, 'error');
+      setStatus('error', err.message);
+      $('btnConnect').disabled = false;
+    }
+  }
+
+  async function stopSession() {
+    if (callFrame) {
+      log('Leaving session');
+      try { await callFrame.leave(); } catch (e) { /* ignore */ }
+      callFrame.destroy();
+      callFrame = null;
+    }
+    cleanup();
+  }
+
+  function cleanup() {
+    setStatus('', 'Disconnected');
+    setVisualizerActive(false);
+    $('btnConnect').disabled = false;
+    $('btnDisconnect').disabled = true;
+    $('btnMute').disabled = true;
+    $('btnMute').classList.remove('muted');
+    isMuted = false;
+    currentBotMsg = null;
+    currentUserMsg = null;
+  }
+
+  function toggleMute() {
+    if (!callFrame) return;
+    isMuted = !isMuted;
+    callFrame.setLocalAudio(!isMuted);
+    $('btnMute').classList.toggle('muted', isMuted);
+    $('btnMute').title = isMuted ? 'Unmute' : 'Mute';
+    log(isMuted ? 'Microphone muted' : 'Microphone unmuted');
+  }
+
+  function toggleLog() {
+    const el = $('log');
+    el.classList.toggle('open');
+    el.previousElementSibling.textContent = el.classList.contains('open') ? 'Hide debug log' : 'Show debug log';
+  }
+</script>
+
+</body>
+</html>

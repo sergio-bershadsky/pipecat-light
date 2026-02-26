@@ -15,6 +15,8 @@ import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 load_dotenv()
@@ -142,3 +144,11 @@ async def connect(request: ConnectRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
     return {"url": room_url, "token": user_token}
+
+
+@app.get("/")
+async def index():
+    return FileResponse(PROJECT_ROOT / "static" / "index.html")
+
+
+app.mount("/static", StaticFiles(directory=PROJECT_ROOT / "static"), name="static")
